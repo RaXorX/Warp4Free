@@ -1,0 +1,44 @@
+name: Build Warp4Free
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    # Explicitly using windows-2025 clears the upcoming June migration notice
+    runs-on: windows-latest
+
+    steps:
+    # 1. You MUST include 'submodules: recursive' so minhook is downloaded
+    - name: Checkout Repository
+      uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    # 2. Set up MSBuild (Required for Windows compilation)
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v3
+
+    # 3. Restore NuGet packages if any exist (Good practice)
+    - name: Restore NuGet Packages
+      run: nuget restore Warp4Free.sln
+
+    # 4. Run the actual build to CREATE the .exe and folders
+    - name: Build Solution
+      run: msbuild Warp4Free.sln /p:Configuration=Release /p:Platform=x64
+
+    # 5. Upload the newly created file (Cleaned syntax with no comments)
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: Warp4Free-Release-x64
+        path: |
+          x64/Release/*.dll
+          x64/Release/*.pdb
+        if-no-files-found: error # Changed to 'error' so it tells you explicitly if it fails
+        compression-level: 6
+        overwrite: false
+        include-hidden-files: false
